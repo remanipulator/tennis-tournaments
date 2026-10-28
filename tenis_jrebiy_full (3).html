@@ -1,0 +1,2164 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Жребий – Тенис Турнир (Елиминации + Групи)</title>
+<style>
+  :root {
+    --primary: #1F4E79;
+    --green: #27AE60;
+    --red: #C0392B;
+    --gold: #F1C40F;
+    --light: #EBF5FB;
+    --gray: #F4F6F7;
+    --border: #2E75B6;
+    --accent: #c9a227;
+    --seed: #1565c0;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Segoe UI', Arial, sans-serif;
+    background: #f0f2f5;
+    color: #222;
+    padding: 16px;
+    line-height: 1.4;
+  }
+  h1 {
+    text-align: center;
+    color: var(--primary);
+    margin-bottom: 6px;
+    font-size: 1.6rem;
+  }
+  .subtitle {
+    text-align: center;
+    color: #666;
+    margin-bottom: 16px;
+    font-size: 0.95rem;
+  }
+
+  /* Mode switcher */
+  .mode-switch {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+  }
+  .mode-btn {
+    padding: 12px 22px;
+    border: none;
+    border-radius: 10px;
+    font-size: 1rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+    color: white;
+    background: #7f8c8d;
+  }
+  .mode-btn.active {
+    background: var(--primary);
+    box-shadow: 0 4px 0 #153a5a;
+  }
+  .mode-btn.groups-btn {
+    background: var(--accent);
+    color: #1a1a1a;
+  }
+  .mode-btn.groups-btn.active {
+    background: #b38e1f;
+    box-shadow: 0 4px 0 #8a6d15;
+  }
+  .mode-btn:active { transform: scale(0.97); }
+
+  .mode-panel { display: none; }
+  .mode-panel.active { display: block; }
+
+  /* ========== SIMPLE MODE (original) ========== */
+  .container {
+    max-width: 1400px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: 280px 1fr;
+    gap: 20px;
+  }
+  @media (max-width: 900px) {
+    .container { grid-template-columns: 1fr; }
+  }
+  .panel {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+    padding: 16px;
+  }
+  .panel h2 {
+    font-size: 1.1rem;
+    color: var(--primary);
+    margin-bottom: 12px;
+    border-bottom: 2px solid var(--light);
+    padding-bottom: 6px;
+  }
+  #playersInput {
+    width: 100%;
+    height: 320px;
+    font-family: inherit;
+    font-size: 0.9rem;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    resize: vertical;
+  }
+  .btn {
+    display: block;
+    width: 100%;
+    padding: 14px;
+    margin-top: 12px;
+    border: none;
+    border-radius: 8px;
+    font-size: 1.05rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: transform 0.15s, box-shadow 0.15s;
+    color: white;
+  }
+  .btn:active { transform: scale(0.98); }
+  .btn-generate {
+    background: var(--green);
+    box-shadow: 0 4px 0 #1e8449;
+  }
+  .btn-generate:hover { background: #219a52; }
+  .btn-reset {
+    background: var(--red);
+    box-shadow: 0 4px 0 #922b21;
+    margin-top: 8px;
+  }
+  .btn-reset:hover { background: #a93226; }
+  .btn-print {
+    background: var(--primary);
+    box-shadow: 0 4px 0 #153a5a;
+    margin-top: 8px;
+  }
+  .btn-print:hover { background: #163a5c; }
+  .hint {
+    font-size: 0.8rem;
+    color: #777;
+    margin-top: 10px;
+    line-height: 1.5;
+  }
+  .bracket-wrap { overflow-x: auto; }
+  .bracket {
+    display: flex;
+    gap: 12px;
+    min-width: 900px;
+    padding-bottom: 20px;
+  }
+  .round {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-around;
+    min-width: 150px;
+  }
+  .round-title {
+    text-align: center;
+    font-weight: 700;
+    font-size: 0.85rem;
+    color: white;
+    background: var(--primary);
+    padding: 6px 4px;
+    border-radius: 6px;
+    margin-bottom: 10px;
+  }
+  .match {
+    display: flex;
+    flex-direction: column;
+    margin: 6px 0;
+    position: relative;
+  }
+  .player {
+    background: white;
+    border: 2px solid var(--border);
+    border-radius: 6px;
+    padding: 7px 10px;
+    font-size: 0.85rem;
+    min-height: 34px;
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .player:hover { background: var(--light); }
+  .player.winner {
+    background: #d5f5e3;
+    border-color: var(--green);
+    font-weight: 600;
+  }
+  .player.empty {
+    background: var(--gray);
+    color: #aaa;
+    border-style: dashed;
+  }
+  .player + .player { margin-top: 3px; }
+  .final-box {
+    background: linear-gradient(135deg, #f9e79f, #f7dc6f);
+    border: 2px solid var(--gold);
+    border-radius: 10px;
+    padding: 16px;
+    text-align: center;
+    margin-top: 20px;
+  }
+  .final-box h3 {
+    color: var(--primary);
+    margin-bottom: 8px;
+  }
+  #champion {
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: var(--primary);
+    min-height: 28px;
+  }
+  .status {
+    text-align: center;
+    margin: 12px 0;
+    font-size: 0.9rem;
+    color: #555;
+  }
+
+  /* ========== ADVANCED MODE (groups) ========== */
+  .adv-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 20px;
+    justify-content: center;
+  }
+  .adv-btn {
+    background: var(--primary);
+    color: white;
+    border: none;
+    padding: 11px 18px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.95rem;
+    font-weight: 600;
+    transition: background 0.2s;
+  }
+  .adv-btn:hover { background: #163a5c; }
+  .adv-btn.accent {
+    background: var(--accent);
+    color: #1a1a1a;
+  }
+  .adv-btn.accent:hover { background: #b38e1f; }
+  .adv-btn.secondary { background: #546e7a; }
+  .adv-btn.secondary:hover { background: #37474f; }
+  .adv-btn.danger { background: var(--red); }
+  .adv-btn.danger:hover { background: #a93226; }
+
+  .card {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+    padding: 18px;
+    margin-bottom: 18px;
+  }
+  .card h2 {
+    font-size: 1.15rem;
+    color: var(--primary);
+    margin-bottom: 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .form-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 12px;
+    align-items: flex-end;
+  }
+  label {
+    display: block;
+    font-size: 0.85rem;
+    font-weight: 500;
+    margin-bottom: 4px;
+    color: #444;
+  }
+  input[type="text"], input[type="number"], input[type="url"], select, textarea {
+    padding: 9px 12px;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    width: 100%;
+    max-width: 300px;
+  }
+  input:focus, select:focus, textarea:focus {
+    outline: 2px solid var(--primary);
+    border-color: transparent;
+  }
+  .players-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 10px;
+    margin-top: 12px;
+  }
+  .player-item {
+    background: #f8faf9;
+    border: 1px solid #d0d8d2;
+    border-radius: 8px;
+    padding: 10px 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+  }
+  .player-item.seeded {
+    border-left: 4px solid var(--seed);
+    background: #e3f2fd;
+  }
+  .player-item .name { font-weight: 500; flex: 1; }
+  .player-item .seed-badge {
+    background: var(--seed);
+    color: white;
+    font-size: 0.75rem;
+    padding: 2px 7px;
+    border-radius: 10px;
+    font-weight: 600;
+  }
+  .player-item .remove {
+    background: none;
+    border: none;
+    color: var(--red);
+    cursor: pointer;
+    font-size: 1.2rem;
+    padding: 2px 6px;
+  }
+  .groups-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(270px, 1fr));
+    gap: 14px;
+    margin-top: 14px;
+  }
+  .group-card {
+    background: #f8faf9;
+    border: 1px solid #d0d8d2;
+    border-radius: 10px;
+    overflow: hidden;
+  }
+  .group-header {
+    background: var(--primary);
+    color: white;
+    padding: 10px 14px;
+    font-weight: 600;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.95rem;
+  }
+  .group-body { padding: 12px; }
+  .group-player {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 0;
+    border-bottom: 1px solid #e8ece9;
+    font-size: 0.9rem;
+  }
+  .group-player:last-child { border-bottom: none; }
+  .group-player.leader { font-weight: 600; color: #0f3d1a; }
+  .group-player .leader-badge {
+    background: var(--accent);
+    color: #1a1a1a;
+    font-size: 0.7rem;
+    padding: 1px 6px;
+    border-radius: 8px;
+    font-weight: 700;
+  }
+  .advance-info {
+    margin-top: 10px;
+    padding: 8px 10px;
+    background: #e8f5e9;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    color: var(--green);
+    font-weight: 500;
+  }
+  .stats-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 12px;
+    font-size: 0.9rem;
+  }
+  .stat {
+    background: #e8f5e9;
+    padding: 5px 12px;
+    border-radius: 20px;
+    color: var(--green);
+    font-weight: 500;
+  }
+  .adv-bracket {
+    display: flex;
+    gap: 30px;
+    min-width: max-content;
+    padding: 10px 0;
+  }
+  .adv-round {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-around;
+    gap: 12px;
+  }
+  .adv-round-title {
+    text-align: center;
+    font-weight: 600;
+    color: var(--primary);
+    font-size: 0.9rem;
+    margin-bottom: 6px;
+  }
+  .adv-match {
+    background: white;
+    border: 1px solid #d0d8d2;
+    border-radius: 8px;
+    min-width: 190px;
+    overflow: hidden;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+  }
+  .adv-match-player {
+    padding: 8px 12px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    border-bottom: 1px solid #eee;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .adv-match-player:last-child { border-bottom: none; }
+  .adv-match-player:hover { background: #e3f2fd; }
+  .adv-match-player.winner {
+    background: #d5f5e3;
+    font-weight: 600;
+    border-left: 3px solid var(--green);
+  }
+  .adv-match-player .seed {
+    color: var(--seed);
+    font-weight: 700;
+    font-size: 0.8rem;
+  }
+  .adv-match-player .bye { color: #999; font-style: italic; cursor: default; }
+
+  /* Modal */
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.45);
+    display: none;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    padding: 20px;
+  }
+  .modal-overlay.active { display: flex; }
+  .modal {
+    background: white;
+    border-radius: 14px;
+    padding: 24px;
+    width: 100%;
+    max-width: 480px;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 12px 40px rgba(0,0,0,0.2);
+  }
+  .modal h3 { margin-bottom: 14px; color: var(--primary); }
+  .modal-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 18px;
+    justify-content: flex-end;
+  }
+  .tabs {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 14px;
+    border-bottom: 2px solid #ddd;
+  }
+  .tab {
+    padding: 10px 16px;
+    cursor: pointer;
+    border: none;
+    background: none;
+    font-weight: 500;
+    color: #666;
+    border-bottom: 3px solid transparent;
+    margin-bottom: -2px;
+  }
+  .tab.active {
+    color: var(--primary);
+    border-bottom-color: var(--primary);
+  }
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+
+
+  .match-results {
+    margin-top: 12px;
+    border-top: 1px solid #e0e0e0;
+    padding-top: 10px;
+  }
+  .match-results h4 {
+    font-size: 0.85rem;
+    color: var(--primary);
+    margin-bottom: 8px;
+  }
+  .match-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 8px;
+    font-size: 0.85rem;
+    padding: 6px 8px;
+    background: #f8f9fa;
+    border-radius: 6px;
+  }
+  .match-row input[type="number"] {
+    width: 48px;
+    padding: 4px 6px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    text-align: center;
+    font-size: 0.9rem;
+  }
+  .match-row .tb-fields {
+    display: none;
+    align-items: center;
+    gap: 4px;
+    margin-left: 6px;
+    padding: 2px 6px;
+    background: #fff3cd;
+    border-radius: 4px;
+  }
+  .match-row .tb-fields.visible {
+    display: inline-flex;
+  }
+  .match-row .save-btn {
+    background: var(--green);
+    color: white;
+    border: none;
+    padding: 4px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.8rem;
+    margin-left: auto;
+  }
+  .match-row .save-btn:hover { background: #219a52; }
+  .match-row.played {
+    background: #e8f5e9;
+  }
+  .match-row .result-text {
+    font-weight: 600;
+    color: var(--green);
+  }
+  .standings {
+    margin-top: 10px;
+    font-size: 0.85rem;
+  }
+  .standings table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  .standings th, .standings td {
+    padding: 4px 6px;
+    text-align: left;
+    border-bottom: 1px solid #eee;
+  }
+  .standings th { color: #666; font-weight: 600; }
+  .standings .advancing-row { background: #d5f5e3; font-weight: 600; }
+
+
+  /* ========== LOGIN ========== */
+  .login-overlay {
+    position: fixed;
+    inset: 0;
+    background: linear-gradient(135deg, #1F4E79 0%, #0d2b45 100%);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+    padding: 20px;
+  }
+  .login-overlay.hidden { display: none; }
+  .login-box {
+    background: white;
+    border-radius: 16px;
+    padding: 36px 32px;
+    width: 100%;
+    max-width: 380px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+  }
+  .login-box h2 {
+    text-align: center;
+    color: var(--primary);
+    margin-bottom: 8px;
+    font-size: 1.4rem;
+  }
+  .login-box .login-sub {
+    text-align: center;
+    color: #888;
+    font-size: 0.9rem;
+    margin-bottom: 24px;
+  }
+  .login-box label {
+    display: block;
+    font-size: 0.85rem;
+    font-weight: 600;
+    margin-bottom: 4px;
+    color: #444;
+  }
+  .login-box input {
+    width: 100%;
+    max-width: 100%;
+    padding: 12px 14px;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    font-size: 1rem;
+    margin-bottom: 14px;
+  }
+  .login-box input:focus {
+    outline: 2px solid var(--primary);
+    border-color: transparent;
+  }
+  .login-box .login-btn {
+    width: 100%;
+    padding: 14px;
+    border: none;
+    border-radius: 8px;
+    font-size: 1.05rem;
+    font-weight: 700;
+    cursor: pointer;
+    color: white;
+    background: var(--primary);
+    margin-top: 6px;
+    box-shadow: 0 4px 0 #153a5a;
+  }
+  .login-box .login-btn:hover { background: #163a5c; }
+  .login-box .guest-btn {
+    width: 100%;
+    padding: 12px;
+    border: 2px solid #bbb;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    color: #555;
+    background: #f5f5f5;
+    margin-top: 12px;
+  }
+  .login-box .guest-btn:hover { background: #eee; border-color: #999; }
+  .login-error {
+    color: var(--red);
+    font-size: 0.9rem;
+    text-align: center;
+    margin-bottom: 10px;
+    min-height: 20px;
+  }
+  .user-bar {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+    font-size: 0.9rem;
+    color: #555;
+  }
+  .user-bar .role-badge {
+    background: var(--primary);
+    color: white;
+    padding: 2px 10px;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    font-weight: 600;
+  }
+  .user-bar .role-badge.guest {
+    background: #7f8c8d;
+  }
+  .user-bar .logout-btn {
+    background: none;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    padding: 4px 12px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    color: #666;
+  }
+  .user-bar .logout-btn:hover { background: #f0f0f0; }
+  body.guest-mode .btn-generate,
+  body.guest-mode .btn-reset,
+  body.guest-mode .adv-btn,
+  body.guest-mode .save-btn,
+  body.guest-mode .player-item .remove,
+  body.guest-mode #playersInput,
+  body.guest-mode input[type="text"],
+  body.guest-mode input[type="number"],
+  body.guest-mode input[type="url"],
+  body.guest-mode select,
+  body.guest-mode textarea:not([readonly]) {
+    pointer-events: none !important;
+    opacity: 0.55 !important;
+  }
+  body.guest-mode .player {
+    cursor: default !important;
+  }
+  body.guest-mode .player:hover {
+    background: white !important;
+  }
+  body.guest-mode .adv-match-player {
+    cursor: default !important;
+  }
+  body.guest-mode .adv-match-player:hover {
+    background: transparent !important;
+  }
+
+  @media print {
+    .mode-switch, .panel:first-child, .btn, .hint, .status, .adv-toolbar { display: none !important; }
+    .container { grid-template-columns: 1fr; }
+    body { background: white; }
+  }
+  @media (max-width: 600px) {
+    body { padding: 10px; }
+    h1 { font-size: 1.3rem; }
+    .form-row { flex-direction: column; align-items: stretch; }
+    input, select { max-width: 100%; }
+  }
+</style>
+</head>
+<body>
+  <!-- LOGIN SCREEN -->
+  <div class="login-overlay" id="loginOverlay">
+    <div class="login-box">
+      <h2>🎾 Тенис Жребий</h2>
+      <p class="login-sub">Влез като администратор или гост</p>
+      <div class="login-error" id="loginError"></div>
+      <label>Потребител</label>
+      <input type="text" id="loginUser" placeholder="Потребителско име" autocomplete="username">
+      <label>Парола</label>
+      <input type="password" id="loginPass" placeholder="Парола" autocomplete="current-password" onkeydown="if(event.key==='Enter') doLogin()">
+      <button class="login-btn" onclick="doLogin()">Вход</button>
+      <button class="guest-btn" onclick="doGuestLogin()">👁 Влез като Guest (само преглед)</button>
+    </div>
+  </div>
+
+  <div id="appContent" style="display:none">
+  <div class="user-bar" id="userBar"></div>
+  <h1>🎾 Жребий – Тенис Турнир</h1>
+  <p class="subtitle">Жребий елиминации или Групи + Елиминации с поставени играчи</p>
+
+  <!-- Mode Switcher -->
+  <div class="mode-switch">
+    <button class="mode-btn active" id="btnSimple" onclick="switchMode('simple')">📋 Жребий елиминации</button>
+    <button class="mode-btn groups-btn" id="btnGroups" onclick="switchMode('groups')">👥 Групи + Елиминации</button>
+  </div>
+
+  <!-- ==================== SIMPLE MODE ==================== -->
+  <div class="mode-panel active" id="mode-simple">
+    <div class="container">
+      <div class="panel">
+        <h2>Играчи / Таблица с точки</h2>
+        <textarea id="playersInput" placeholder="Постави таблица или имена (по един на ред)&#10;&#10;Пример:&#10;| 1 | Milen Georgiev | 8306 |&#10;| 2 | Marin Neikov | 6630 |&#10;&#10;или просто:&#10;Milen Georgiev&#10;Marin Neikov"></textarea>
+        <button class="btn btn-generate" onclick="generateDraw()">▶ ГЕНЕРИРАЙ ЖРЕБИЙ</button>
+        <button class="btn btn-reset" onclick="resetBracket()">🔄 ИЗЧИСТИ СХЕМАТА</button>
+        <button class="btn btn-print" onclick="window.print()">🖨 ПЕЧАТ</button>
+        <p class="hint">
+          • Постави таблица (№ | Име | Точки) или само имена<br>
+          • Взима <strong>само имената и точките</strong><br>
+          • Най-много точки → поставени горе/долу/среда в схемата<br>
+          • Останалите се разбъркват на случаен принцип срещу тях<br>
+          • Кликай върху победителите, за да ги преместиш напред
+        </p>
+      </div>
+      <div class="panel bracket-wrap">
+        <div class="status" id="status">Натисни „ГЕНЕРИРАЙ ЖРЕБИЙ“, за да започнеш</div>
+        <div class="bracket" id="bracket"></div>
+        <div class="final-box">
+          <h3>🏆 ШАМПИОН</h3>
+          <div id="champion">—</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== GROUPS / ADVANCED MODE ==================== -->
+  <div class="mode-panel" id="mode-groups">
+    <div class="adv-toolbar">
+      <button class="adv-btn" onclick="openModal('url')">🔗 URL / Href</button>
+      <button class="adv-btn accent" onclick="openModal('groups')">👥 Създай групи</button>
+      <button class="adv-btn secondary" onclick="generateAdvBracket()">🏆 Генерирай елиминации</button>
+      <button class="adv-btn danger" onclick="resetAdvanced()">🗑 Изчисти всичко</button>
+    </div>
+
+    <!-- Players -->
+    <div class="card">
+      <h2>📋 Играчи</h2>
+      <div class="form-row">
+        <div>
+          <label>Име на играч</label>
+          <input type="text" id="advPlayerName" placeholder="Име Фамилия" onkeydown="if(event.key==='Enter') addAdvPlayer()">
+        </div>
+        <div>
+          <label>Позиция (seed)</label>
+          <input type="number" id="advPlayerSeed" placeholder="1, 2, 3..." min="1" style="max-width:100px">
+        </div>
+        <button class="adv-btn" onclick="addAdvPlayer()">+ Добави</button>
+      </div>
+      <p class="hint" style="margin-top:6px">Остави seed празно за непоставен. Поставените имат приоритет.</p>
+      <div class="stats-bar" id="advPlayerStats"></div>
+      <div class="players-list" id="advPlayersList"></div>
+    </div>
+
+    <!-- Groups -->
+    <div class="card" id="groupsSection" style="display:none">
+      <h2>👥 Групи</h2>
+      <div class="stats-bar" id="groupsStats"></div>
+      <div class="groups-container" id="groupsContainer"></div>
+    </div>
+
+    <!-- Advanced Bracket -->
+    <div class="card" id="advBracketSection" style="display:none">
+      <h2>🏆 Основна елиминационна схема</h2>
+      <div class="stats-bar" id="advBracketStats"></div>
+      <div style="overflow-x:auto">
+        <div class="adv-bracket" id="advBracket"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal -->
+  <div class="modal-overlay" id="modal">
+    <div class="modal">
+      <div class="tabs">
+        <button class="tab active" data-tab="url" onclick="switchTab('url')">🔗 URL / Href</button>
+        <button class="tab" data-tab="groups" onclick="switchTab('groups')">👥 Групи</button>
+      </div>
+
+      <div class="tab-content active" id="tab-url">
+        <h3>Въвеждане на URL / Импорт на играчи</h3>
+        <label>URL или href адрес</label>
+        <input type="url" id="urlInput" placeholder="https://example.com/players или просто текст">
+        <p class="hint" style="margin-top:6px">Въведи URL. Ако fetch не успее (CORS), постави съдържанието по-долу.</p>
+        
+        <label style="margin-top:12px;font-weight:600;color:#c0392b">⬇ Постави списък с играчи тук (по един на ред) – най-сигурният начин</label>
+        <textarea id="urlContent" placeholder="Martin Damyanov (1)&#10;Ivo Bodzhakov (2)&#10;Играч без seed&#10;..." style="width:100%;max-width:100%;height:140px;margin-top:4px;border:2px solid #27ae60"></textarea>
+        
+        <div class="form-row" style="margin-top:12px">
+          <div>
+            <label>Размер на група при авто-създаване</label>
+            <select id="autoGroupSize">
+              <option value="3">1 поставен + 2 непоставени (група от 3)</option>
+              <option value="4" selected>1 поставен + 3 непоставени (група от 4)</option>
+            </select>
+          </div>
+        </div>
+        <p class="hint">При импорт: автоматично се взимат по 1 поставен + 2/3 непоставени на случаен принцип и се създават групи.</p>
+        
+        <div id="savedUrls" style="margin-top:12px"></div>
+        <div class="modal-actions">
+          <button class="adv-btn secondary" onclick="closeModal()">Затвори</button>
+          <button class="adv-btn" onclick="saveUrl()">Запази URL</button>
+          <button class="adv-btn accent" onclick="importFromUrlAndCreateGroups()">⚡ Импорт + Авто групи</button>
+        </div>
+      </div>
+
+      <div class="tab-content" id="tab-groups">
+        <h3>Създаване на групи</h3>
+        <div class="form-row">
+          <div>
+            <label>Размер на група</label>
+            <select id="groupSize">
+              <option value="3">По 3 играчи</option>
+              <option value="4" selected>По 4 играчи</option>
+            </select>
+          </div>
+          <div>
+            <label>Колко продължават от група</label>
+            <select id="advanceCount">
+              <option value="1">1 играч</option>
+              <option value="2" selected>2 играчи</option>
+            </select>
+          </div>
+        </div>
+        <p class="hint" style="margin-top:6px">Във всяка група автоматично се избира лидер (първият поставен или случаен).</p>
+        <div class="modal-actions">
+          <button class="adv-btn secondary" onclick="closeModal()">Затвори</button>
+          <button class="adv-btn accent" onclick="createGroups()">Създай групи</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<script>
+
+/* ===================== AUTH ===================== */
+const USERS = {
+  'Karina': { password: '12340987', role: 'admin' },
+  'Dian':   { password: '1q2w3e4r', role: 'admin' },
+  'Guest':  { password: null,       role: 'guest' }
+};
+
+let currentUser = null;
+
+function doLogin() {
+  const user = (document.getElementById('loginUser').value || '').trim();
+  const pass = document.getElementById('loginPass').value || '';
+  const err = document.getElementById('loginError');
+  err.textContent = '';
+
+  if (!user) {
+    err.textContent = 'Въведи потребителско име.';
+    return;
+  }
+  const account = USERS[user];
+  if (!account) {
+    err.textContent = 'Грешен потребител или парола.';
+    return;
+  }
+  if (account.role === 'admin') {
+    if (pass !== account.password) {
+      err.textContent = 'Грешен потребител или парола.';
+      return;
+    }
+  }
+  // Guest should use guest button, but allow login as Guest with empty pass
+  if (account.role === 'guest' && pass !== '' && pass !== null) {
+    // allow empty password only for guest via this path
+  }
+
+  sessionStorage.setItem('tennisAuth', JSON.stringify({ user, role: account.role }));
+  enterApp(user, account.role);
+}
+
+function doGuestLogin() {
+  sessionStorage.setItem('tennisAuth', JSON.stringify({ user: 'Guest', role: 'guest' }));
+  enterApp('Guest', 'guest');
+}
+
+function enterApp(user, role) {
+  currentUser = { user, role };
+  document.getElementById('loginOverlay').classList.add('hidden');
+  document.getElementById('appContent').style.display = 'block';
+  document.body.classList.toggle('guest-mode', role === 'guest');
+  renderUserBar();
+  // init default draw only for admin; guest can still view existing
+  if (typeof generateDraw === 'function' && role === 'admin') {
+    try { generateDraw(); } catch(e) {}
+  }
+}
+
+function renderUserBar() {
+  const bar = document.getElementById('userBar');
+  if (!currentUser) { bar.innerHTML = ''; return; }
+  const roleLabel = currentUser.role === 'admin' ? 'Администратор' : 'Гост (само преглед)';
+  const badgeClass = currentUser.role === 'guest' ? 'role-badge guest' : 'role-badge';
+  bar.innerHTML = `
+    <span>Влезли сте като <strong>${escapeHtml(currentUser.user)}</strong></span>
+    <span class="${badgeClass}">${roleLabel}</span>
+    <button class="logout-btn" onclick="doLogout()">Изход</button>
+  `;
+}
+
+function doLogout() {
+  sessionStorage.removeItem('tennisAuth');
+  currentUser = null;
+  document.getElementById('appContent').style.display = 'none';
+  document.getElementById('loginOverlay').classList.remove('hidden');
+  document.body.classList.remove('guest-mode');
+  document.getElementById('loginUser').value = '';
+  document.getElementById('loginPass').value = '';
+  document.getElementById('loginError').textContent = '';
+}
+
+function requireAdmin(actionName) {
+  if (!currentUser || currentUser.role !== 'admin') {
+    return false;
+  }
+  return true;
+}
+
+function checkAuthOnLoad() {
+  try {
+    const saved = sessionStorage.getItem('tennisAuth');
+    if (saved) {
+      const data = JSON.parse(saved);
+      if (data && data.user && USERS[data.user]) {
+        enterApp(data.user, data.role || USERS[data.user].role);
+        return;
+      }
+    }
+  } catch(e) {}
+  // show login
+  document.getElementById('loginOverlay').classList.remove('hidden');
+  document.getElementById('appContent').style.display = 'none';
+}
+
+
+/* ===================== MODE SWITCH ===================== */
+function switchMode(mode) {
+  document.getElementById('mode-simple').classList.toggle('active', mode === 'simple');
+  document.getElementById('mode-groups').classList.toggle('active', mode === 'groups');
+  document.getElementById('btnSimple').classList.toggle('active', mode === 'simple');
+  document.getElementById('btnGroups').classList.toggle('active', mode === 'groups');
+}
+
+/* ===================== SIMPLE MODE (original) ===================== */
+const defaultPlayers = [
+  "Martin Damyanov (1)",
+  "Ivo Bodzhakov (2)",
+  "Valentin Bonev (3)",
+  "Ivan Topchiysky (4)",
+  "Rumen Georgiev (WC1)",
+  "Svetoslav Stoichkov (WC2)",
+  "Martin Milchev (WC3)",
+  "Chavdar Ivanov (WC4)",
+  "Ivo Andreev",
+  "Ilia Tanev",
+  "Patrik Valchev",
+  "Vladimir Velkov",
+  "Krasimir Marinov",
+  "Християн Гонов",
+  "Ивайло Панайотов",
+  "Валентин Герашки"
+];
+document.getElementById('playersInput').value = defaultPlayers.join('\n');
+
+function shuffle(array) {
+  const a = [...array];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+function getPlayers() {
+  // Reuse the advanced parser – extracts only names + points
+  const raw = document.getElementById('playersInput').value;
+  const parsed = parsePlayersFromText(raw);
+  if (parsed.length > 0) {
+    // Return objects with name + points, sorted by points desc
+    return parsed;
+  }
+  // Fallback: plain names
+  return raw.split('\n').map(s => s.trim()).filter(s => s.length > 0)
+    .map(name => ({ name, points: 0, isSeeded: false, seed: null }));
+}
+
+function createPlayerDiv(player, roundIdx, matchIdx, pos) {
+  const div = document.createElement('div');
+  const name = player ? (typeof player === 'string' ? player : player.name) : null;
+  div.className = 'player' + (name ? '' : ' empty');
+  if (name) {
+    let label = name;
+    if (player && player.points) label += ` (${player.points})`;
+    if (player && player.isSeeded) label = `[${player.seed}] ${label}`;
+    div.textContent = label;
+  } else {
+    div.textContent = '—';
+  }
+  div.dataset.round = roundIdx;
+  div.dataset.match = matchIdx;
+  div.dataset.pos = pos;
+  if (name) div.onclick = () => selectWinner(div);
+  return div;
+}
+
+// Classic seed positions: 1 top, 2 bottom, 3/4 middle, etc.
+function getClassicSeedPositions(size) {
+  if (size === 2) return [0, 1];
+  if (size === 4) return [0, 3, 2, 1];
+  if (size === 8) return [0, 7, 3, 4, 2, 5, 1, 6];
+  if (size === 16) return [0, 15, 7, 8, 3, 12, 4, 11, 1, 14, 6, 9, 2, 13, 5, 10];
+  if (size === 32) return [0,31,15,16,7,24,8,23,3,28,12,19,4,27,11,20,1,30,14,17,6,25,9,22,2,29,13,18,5,26,10,21];
+  const pos = [];
+  for (let i = 0; i < size; i++) pos.push(i);
+  return pos;
+}
+
+function buildBracket(playerObjs) {
+  const bracketEl = document.getElementById('bracket');
+  bracketEl.innerHTML = '';
+  document.getElementById('champion').textContent = '—';
+
+  const n = playerObjs.length;
+  let size = 1;
+  while (size < n) size *= 2;
+  if (size < 2) size = 2;
+  if (size > 32) size = 32;
+
+  const byesCount = size - n; // only the top players by points get these byes
+
+  // Sort strictly by points (highest first)
+  const sorted = [...playerObjs].sort((a, b) => (b.points || 0) - (a.points || 0));
+
+  // ONLY the highest-ranked (most points) get byes
+  const byePlayers = sorted.slice(0, byesCount).map((p, i) => ({
+    ...p, isSeeded: true, seed: i + 1, hasBye: true
+  }));
+  // Everyone else must play in round 1
+  const round1Players = sorted.slice(byesCount).map((p, i) => ({
+    ...p,
+    isSeeded: true,
+    seed: byesCount + i + 1
+  }));
+
+  // Round 1 has size/2 matches
+  // byesCount of them are BYE matches (only top players)
+  // the rest are real matches between the remaining players
+  const numR1Matches = size / 2;
+  const positions = new Array(size).fill(null); // pairs: (0,1), (2,3), ...
+
+  // Place bye players in the first byesCount match slots as p1, p2 stays null
+  // Distribute them at classic "seed" match positions for balance
+  const byeMatchOrder = [];
+  // Prefer matches 0, last, middle... for fair bracket
+  if (numR1Matches >= 1) byeMatchOrder.push(0);
+  if (numR1Matches >= 2) byeMatchOrder.push(numR1Matches - 1);
+  for (let i = 1; i < numR1Matches - 1; i++) byeMatchOrder.push(i);
+
+  byePlayers.forEach((p, i) => {
+    const matchIdx = byeMatchOrder[i];
+    positions[matchIdx * 2] = p;       // p1
+    positions[matchIdx * 2 + 1] = null; // BYE
+  });
+
+  // Remaining match slots get the round1 players (paired)
+  // Sort round1 by points again for seeding within R1, then place
+  // Put strongest remaining at edges of remaining matches
+  const freeSlots = [];
+  for (let i = 0; i < size; i++) {
+    if (positions[i] === null && !(i % 2 === 1 && positions[i - 1] && positions[i - 1].hasBye)) {
+      // skip the BYE opponent slots
+      const matchIdx = Math.floor(i / 2);
+      const isByeMatch = positions[matchIdx * 2] && positions[matchIdx * 2].hasBye && positions[matchIdx * 2 + 1] === null;
+      if (!isByeMatch) freeSlots.push(i);
+    }
+  }
+  // Actually simpler: collect free match indices (matches without a bye player)
+  const freeMatchIndices = [];
+  for (let m = 0; m < numR1Matches; m++) {
+    const hasBye = positions[m * 2] && positions[m * 2].hasBye;
+    if (!hasBye) freeMatchIndices.push(m);
+  }
+
+  // Place round1 players into free matches – two per match
+  // First half of list as "favorites", second as opponents (shuffled lightly)
+  let r1 = [...round1Players];
+  // Keep order by points for first slots of each match; shuffle the "underdogs"
+  const favorites = r1.slice(0, freeMatchIndices.length);
+  const underdogs = r1.slice(freeMatchIndices.length);
+  for (let i = underdogs.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [underdogs[i], underdogs[j]] = [underdogs[j], underdogs[i]];
+  }
+
+  freeMatchIndices.forEach((mIdx, i) => {
+    positions[mIdx * 2] = favorites[i] || null;
+    positions[mIdx * 2 + 1] = underdogs[i] || null;
+  });
+
+  // Build rounds array
+  const rounds = [];
+  rounds.push(positions);
+  let len = size / 2;
+  while (len >= 1) {
+    rounds.push(new Array(len).fill(null));
+    len = len / 2;
+  }
+
+  // Pre-fill round 2 with bye winners
+  if (rounds.length > 1) {
+    for (let m = 0; m < numR1Matches; m++) {
+      const p1 = positions[m * 2];
+      const p2 = positions[m * 2 + 1];
+      if (p1 && p1.hasBye && !p2) {
+        rounds[1][m] = p1;
+      } else if (p2 && p2.hasBye && !p1) {
+        rounds[1][m] = p2;
+      }
+    }
+  }
+
+  const roundNamesMap = {
+    32: ['1/16 финал', '1/8 финал', '1/4 финал', '1/2 финал', 'Финал'],
+    16: ['1/8 финал', '1/4 финал', '1/2 финал', 'Финал'],
+    8:  ['1/4 финал', '1/2 финал', 'Финал'],
+    4:  ['1/2 финал', 'Финал'],
+    2:  ['Финал']
+  };
+  const names = roundNamesMap[size] || ['Кръг 1', 'Кръг 2', 'Кръг 3', 'Финал'];
+
+  rounds.forEach((roundPlayers, rIdx) => {
+    const roundDiv = document.createElement('div');
+    roundDiv.className = 'round';
+    roundDiv.dataset.round = rIdx;
+    const title = document.createElement('div');
+    title.className = 'round-title';
+    title.textContent = names[rIdx] || ('Кръг ' + (rIdx + 1));
+    roundDiv.appendChild(title);
+
+    for (let m = 0; m < roundPlayers.length; m += 2) {
+      const matchDiv = document.createElement('div');
+      matchDiv.className = 'match';
+      matchDiv.dataset.match = m / 2;
+
+      let p1, p2;
+      if (rIdx === 0) {
+        p1 = roundPlayers[m];
+        p2 = roundPlayers[m + 1];
+      } else {
+        // later rounds: each slot is one player (already paired by index)
+        p1 = roundPlayers[m];
+        p2 = roundPlayers[m + 1];
+      }
+
+      const d1 = createPlayerDiv(p1, rIdx, m / 2, 0);
+      const d2 = createPlayerDiv(p2, rIdx, m / 2, 1);
+
+      if (rIdx === 0) {
+        if (p1 && p1.hasBye && !p2) {
+          d1.classList.add('winner');
+          d2.textContent = 'BYE';
+          d2.className = 'player empty';
+        } else if (p2 && p2.hasBye && !p1) {
+          d2.classList.add('winner');
+          d1.textContent = 'BYE';
+          d1.className = 'player empty';
+        }
+      }
+
+      matchDiv.appendChild(d1);
+      matchDiv.appendChild(d2);
+      roundDiv.appendChild(matchDiv);
+    }
+    bracketEl.appendChild(roundDiv);
+  });
+
+  let statusMsg = 'Жребий с ' + n + ' играча (' + size + '-схема)';
+  if (byesCount > 0) {
+    statusMsg += ' • BYE за най-силните: ' + byePlayers.map(p => p.name).join(', ');
+  }
+  statusMsg += ' • ' + new Date().toLocaleTimeString('bg');
+  document.getElementById('status').textContent = statusMsg;
+}
+
+function selectWinner(el) {
+  if (!requireAdmin('маркират победители')) return;
+  const round = parseInt(el.dataset.round);
+  const match = parseInt(el.dataset.match);
+  const name = el.textContent;
+  const matchEl = el.parentElement;
+  matchEl.querySelectorAll('.player').forEach(p => p.classList.remove('winner'));
+  el.classList.add('winner');
+  const nextRound = round + 1;
+  const nextMatch = Math.floor(match / 2);
+  const nextPos = match % 2;
+  const nextRoundEl = document.querySelector(`.round[data-round="${nextRound}"]`);
+  if (!nextRoundEl) {
+    document.getElementById('champion').textContent = name;
+    return;
+  }
+  const nextMatchEl = nextRoundEl.querySelectorAll('.match')[nextMatch];
+  if (nextMatchEl) {
+    const slots = nextMatchEl.querySelectorAll('.player');
+    if (slots[nextPos]) {
+      slots[nextPos].textContent = name;
+      slots[nextPos].classList.remove('empty');
+      slots[nextPos].onclick = () => selectWinner(slots[nextPos]);
+    }
+  }
+}
+
+function generateDraw() {
+  if (!requireAdmin('генерират жребий')) return;
+  const players = getPlayers();
+  if (players.length < 2) { alert('Въведи поне 2 играча!'); return; }
+  buildBracket(players);
+}
+function resetBracket() {
+  if (!requireAdmin('изчистват схемата')) return;
+  document.getElementById('bracket').innerHTML = '';
+  document.getElementById('champion').textContent = '—';
+  document.getElementById('status').textContent = 'Схемата е изчистена. Натисни „ГЕНЕРИРАЙ ЖРЕБИЙ“.';
+}
+window.onload = () => { checkAuthOnLoad(); };
+
+/* ===================== ADVANCED MODE ===================== */
+let advPlayers = [];
+let groups = [];
+let advanceFromGroup = 2;
+let savedUrls = [];
+let advBracketMatches = [];
+
+function addAdvPlayer() {
+  if (!requireAdmin('добавят играчи')) return;
+  const nameInput = document.getElementById('advPlayerName');
+  const seedInput = document.getElementById('advPlayerSeed');
+  const name = nameInput.value.trim();
+  if (!name) { nameInput.focus(); return; }
+  const seed = seedInput.value ? parseInt(seedInput.value) : null;
+  if (seed !== null && (isNaN(seed) || seed < 1)) {
+    alert('Seed трябва да е положително число'); return;
+  }
+  if (advPlayers.some(p => p.name.toLowerCase() === name.toLowerCase())) {
+    alert('Играч с това име вече съществува'); return;
+  }
+  advPlayers.push({ id: Date.now() + Math.random(), name, seed, isSeeded: seed !== null });
+  advPlayers.sort((a, b) => {
+    // Higher points = stronger
+    if ((b.points || 0) !== (a.points || 0)) return (b.points || 0) - (a.points || 0);
+    // Then lower seed number
+    if (a.isSeeded && b.isSeeded) return a.seed - b.seed;
+    if (a.isSeeded) return -1;
+    if (b.isSeeded) return 1;
+    // Then rank
+    if (a.rank && b.rank) return a.rank - b.rank;
+    return 0;
+  });
+  nameInput.value = '';
+  seedInput.value = '';
+  nameInput.focus();
+  renderAdvPlayers();
+}
+function removeAdvPlayer(id) {
+  if (!requireAdmin('премахват играчи')) return;
+  advPlayers = advPlayers.filter(p => p.id !== id);
+  renderAdvPlayers();
+  if (groups.length) {
+    groups = [];
+    document.getElementById('groupsSection').style.display = 'none';
+  }
+  document.getElementById('advBracketSection').style.display = 'none';
+}
+function renderAdvPlayers() {
+  const list = document.getElementById('advPlayersList');
+  const stats = document.getElementById('advPlayerStats');
+  const seeded = advPlayers.filter(p => p.isSeeded).length;
+  stats.innerHTML = `
+    <span class="stat">Общо: ${advPlayers.length}</span>
+    <span class="stat">Поставени: ${seeded}</span>
+    <span class="stat">Непоставени: ${advPlayers.length - seeded}</span>`;
+  list.innerHTML = advPlayers.map(p => `
+    <div class="player-item ${p.isSeeded ? 'seeded' : ''}">
+      <span class="name">
+        ${p.isSeeded ? `<span class="seed-badge">${p.seed}</span>` : ''}
+        ${escapeHtml(p.name)}${p.points ? ` <small style="color:#666">(${p.points} т.)</small>` : ''}
+      </span>
+      <button class="remove" onclick="removeAdvPlayer(${p.id})" title="Премахни">×</button>
+    </div>`).join('');
+}
+
+function saveUrl() {
+  if (!requireAdmin('запазват URL')) return;
+  const input = document.getElementById('urlInput');
+  const url = input.value.trim();
+  if (!url) return;
+  savedUrls.push({ id: Date.now(), url, date: new Date().toLocaleString('bg-BG') });
+  input.value = '';
+  renderSavedUrls();
+}
+function renderSavedUrls() {
+  const el = document.getElementById('savedUrls');
+  if (!savedUrls.length) { el.innerHTML = ''; return; }
+  el.innerHTML = '<strong>Запазени:</strong><ul style="margin:8px 0 0 18px;font-size:0.9rem">' +
+    savedUrls.map(u => `<li><a href="${escapeHtml(u.url)}" target="_blank" rel="noopener">${escapeHtml(u.url)}</a> <small>(${u.date})</small></li>`).join('') +
+    '</ul>';
+}
+
+// Parse players from text – specially handles ranking tables (№ | Име | Точки | ...)
+function parsePlayersFromText(text) {
+  const lines = text.split('\n').map(s => s.trim()).filter(s => s.length > 0);
+  const parsed = [];
+  const seen = new Set();
+
+  lines.forEach(line => {
+    // Skip pure separator lines and header
+    if (/^\|?\s*---/.test(line)) return;
+    if (/№\s*\|\s*Име/i.test(line) || /No\.?\s*\|\s*Name/i.test(line)) return;
+    if (/Точки\s*\|\s*ИТН/i.test(line)) return;
+
+    let name = null;
+    let rank = null;
+    let points = 0;
+
+    // === Case 1: Markdown / pipe table row ===
+    // Example: | 1   | Milen Georgiev     | 8306  | 5.30 | Мъж | 00:58, 31.07.26 |
+    if (line.includes('|')) {
+      const cols = line.split('|').map(c => c.trim()).filter(c => c.length > 0);
+      // Expected: [№, Име, Точки, ИТН, Пол, Регистрация]
+      if (cols.length >= 2) {
+        const numMatch = cols[0].match(/^(\d+)$/);
+        if (numMatch) {
+          rank = parseInt(numMatch[1]);
+          name = cols[1]; // second column = Име
+          // third column = Точки
+          if (cols.length >= 3) {
+            const pts = parseFloat(cols[2].replace(/\s/g, '').replace(',', '.'));
+            if (!isNaN(pts)) points = pts;
+          }
+        }
+      }
+    }
+
+    // === Case 2: Simple "1. Name" or "1 Name" ===
+    if (!name) {
+      const m = line.match(/^\s*(\d{1,3})[\.\)\s]+(.+)/);
+      if (m) {
+        rank = parseInt(m[1]);
+        name = m[2].trim();
+        if (name.includes('|')) {
+          const parts = name.split('|').map(p => p.trim());
+          name = parts[0];
+          if (parts.length >= 2) {
+            const pts = parseFloat(parts[1].replace(/\s/g, '').replace(',', '.'));
+            if (!isNaN(pts)) points = pts;
+          }
+        }
+      }
+    }
+
+    // === Case 3: Plain name (fallback) ===
+    if (!name) {
+      if (line.length >= 3 && line.length <= 40 && /[\p{L}]{2,}/u.test(line) &&
+          !/^(име|name|играч|точки|пол|регистрация|иtn|№)/i.test(line) &&
+          !line.includes('|')) {
+        name = line;
+      }
+    }
+
+    if (!name) return;
+
+    // Clean the name
+    name = name
+      .replace(/\s{2,}/g, ' ')
+      .replace(/^[\-\–\—\•\*\+]+\s*/, '')
+      .trim();
+
+    // Fix stuck initials (PDPetar, PCPavel, ЙАЙордан, ВМВасил, LLLiubomir...)
+    name = name.replace(/^([A-ZА-Я]{2,3})([A-ZА-Я][a-zа-я]+)/u, function(_, prefix, rest) {
+      if (rest.length >= 3) return rest;
+      return prefix + rest;
+    });
+
+    // Extra clean
+    name = name
+      .replace(/\s+\d+[.,]\d+.*$/, '')
+      .replace(/\s+(Мъж|Жена|Male|Female)\s*.*$/i, '')
+      .replace(/\s+\d{1,2}:\d{2}.*$/, '')
+      .trim();
+
+    if (name.length < 3) return;
+    if (!/[\p{L}]{2,}/u.test(name)) return;
+
+    const key = name.toLowerCase();
+    if (seen.has(key)) return;
+    seen.add(key);
+
+    // First 8 by rank become seeded (will be refined after sort by points)
+    const seed = (rank && rank <= 8) ? rank : null;
+
+    parsed.push({
+      id: Date.now() + Math.random() + parsed.length,
+      name,
+      seed,
+      isSeeded: seed !== null,
+      points: points,
+      rank: rank
+    });
+  });
+
+  // Sort by points descending (most points = strongest), then by rank
+  parsed.sort((a, b) => {
+    if (b.points !== a.points) return b.points - a.points;
+    if (a.rank && b.rank) return a.rank - b.rank;
+    return 0;
+  });
+
+  // Re-assign seeds based on points order (top 8)
+  parsed.forEach((p, i) => {
+    if (i < 8) {
+      p.seed = i + 1;
+      p.isSeeded = true;
+    } else {
+      p.seed = null;
+      p.isSeeded = false;
+    }
+  });
+
+  return parsed;
+}
+
+async function importFromUrlAndCreateGroups() {
+  if (!requireAdmin('импортират играчи')) return;
+  const urlInput = document.getElementById('urlInput');
+  const contentArea = document.getElementById('urlContent');
+  const url = urlInput.value.trim();
+  let text = contentArea.value.trim();
+
+  // Try to fetch URL if provided and no content pasted
+  if (url && !text) {
+    let fetched = false;
+
+    // 1. Direct fetch
+    try {
+      const resp = await fetch(url, { mode: 'cors' });
+      if (resp.ok) {
+        text = await resp.text();
+        fetched = true;
+      }
+    } catch (e) { /* CORS or network error */ }
+
+    // 2. Try public CORS proxies as fallback
+    if (!fetched) {
+      const proxies = [
+        'https://api.allorigins.win/raw?url=',
+        'https://corsproxy.io/?',
+        'https://api.codetabs.com/v1/proxy?quest='
+      ];
+      for (const proxy of proxies) {
+        try {
+          const resp = await fetch(proxy + encodeURIComponent(url));
+          if (resp.ok) {
+            text = await resp.text();
+            fetched = true;
+            break;
+          }
+        } catch (e) { /* try next proxy */ }
+      }
+    }
+
+    if (fetched && text) {
+      // Extract visible text from HTML
+      const tmp = document.createElement('div');
+      tmp.innerHTML = text;
+      text = (tmp.innerText || tmp.textContent || text).trim();
+      contentArea.value = text.substring(0, 8000);
+    } else {
+      // Focus the paste area and show clear instructions
+      contentArea.focus();
+      contentArea.style.border = '2px solid #e74c3c';
+      setTimeout(() => { contentArea.style.border = ''; }, 3000);
+      alert(
+        'Неуспешно зареждане от URL (CORS ограничение на браузъра).\n\n' +
+        'Как да продължиш:\n' +
+        '1. Отвори линка в нов таб\n' +
+        '2. Маркирай списъка с играчи\n' +
+        '3. Копирай (Ctrl+C)\n' +
+        '4. Постави го в полето „Постави списък с играчи“\n' +
+        '5. Натисни отново „Импорт + Авто групи“'
+      );
+      return;
+    }
+  }
+
+  if (!text) {
+    contentArea.focus();
+    alert('Няма съдържание за импорт.\nПостави списък с играчи (по един на ред) в голямото поле.');
+    return;
+  }
+
+  // Parse players
+  const parsed = parsePlayersFromText(text);
+  if (parsed.length < 3) {
+    alert('Намерени са по-малко от 3 играчи. Провери формата на списъка.');
+    return;
+  }
+
+  // Replace current players
+  advPlayers = parsed;
+  advPlayers.sort((a, b) => {
+    // Higher points = stronger
+    if ((b.points || 0) !== (a.points || 0)) return (b.points || 0) - (a.points || 0);
+    // Then lower seed number
+    if (a.isSeeded && b.isSeeded) return a.seed - b.seed;
+    if (a.isSeeded) return -1;
+    if (b.isSeeded) return 1;
+    // Then rank
+    if (a.rank && b.rank) return a.rank - b.rank;
+    return 0;
+  });
+  renderAdvPlayers();
+
+  // ========== SMART GROUP CREATION ==========
+  // 1. If total players not divisible by groupSize → top ranked get BYE to eliminations
+  // 2. Remaining players form FULL groups of exact size
+  const groupSize = parseInt(document.getElementById('autoGroupSize').value);
+  let playersForGroups = [...advPlayers];
+
+  // Sort by points (highest first), then seed
+  playersForGroups.sort((a, b) => {
+    // Higher points = stronger
+    if ((b.points || 0) !== (a.points || 0)) return (b.points || 0) - (a.points || 0);
+    // Then lower seed number
+    if (a.isSeeded && b.isSeeded) return a.seed - b.seed;
+    if (a.isSeeded) return -1;
+    if (b.isSeeded) return 1;
+    // Then rank
+    if (a.rank && b.rank) return a.rank - b.rank;
+    return 0;
+  });
+
+  const remainder = playersForGroups.length % groupSize;
+  let directAdvancing = [];  // players who get bye into eliminations
+
+  if (remainder > 0) {
+    // Highest ranked (first in sorted list) get automatic bye
+    directAdvancing = playersForGroups.slice(0, remainder).map(p => ({...p, bye: true}));
+    playersForGroups = playersForGroups.slice(remainder);
+  }
+
+  // Now playersForGroups.length is divisible by groupSize
+  const numGroups = playersForGroups.length / groupSize;
+  groups = [];
+
+  // Separate seeded and unseeded among remaining
+  const seeded = playersForGroups.filter(p => p.isSeeded);
+  let unseeded = playersForGroups.filter(p => !p.isSeeded);
+
+  // Shuffle unseeded for fairness
+  for (let i = unseeded.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [unseeded[i], unseeded[j]] = [unseeded[j], unseeded[i]];
+  }
+
+  // Create exact-size groups: try to put 1 seeded as leader in each group
+  let sIdx = 0, uIdx = 0;
+  for (let g = 0; g < numGroups; g++) {
+    const groupPlayers = [];
+
+    // Prefer 1 seeded as leader
+    if (sIdx < seeded.length) {
+      groupPlayers.push({ ...seeded[sIdx++], isLeader: true });
+    }
+
+    // Fill the rest with unseeded (or remaining seeded)
+    while (groupPlayers.length < groupSize) {
+      if (uIdx < unseeded.length) {
+        groupPlayers.push({ ...unseeded[uIdx++], isLeader: false });
+      } else if (sIdx < seeded.length) {
+        groupPlayers.push({ ...seeded[sIdx++], isLeader: false });
+      } else {
+        break;
+      }
+    }
+
+    // Ensure we have exactly groupSize (should always be true now)
+    if (groupPlayers.length === groupSize) {
+      const leader = groupPlayers.find(p => p.isLeader) || groupPlayers[0];
+      groupPlayers.forEach(p => p.isLeader = (p.id === leader.id));
+      groups.push({
+        id: g + 1,
+        players: groupPlayers,
+        leader: leader
+      });
+    }
+  }
+
+  // Store direct advancing players for later use in bracket
+  window.directAdvancingPlayers = directAdvancing;
+
+  advanceFromGroup = 2; // default
+  closeModal();
+  renderGroups();
+  document.getElementById('groupsSection').style.display = 'block';
+  document.getElementById('advBracketSection').style.display = 'none';
+
+  let msg = `Импортирани ${parsed.length} играчи.\\nСъздадени ${groups.length} пълни групи по ${groupSize} играчи.`;
+  if (directAdvancing.length > 0) {
+    msg += `\\n\\n⭐ ${directAdvancing.length} най-високо класирани минават директно в елиминациите (bye):\\n` +
+           directAdvancing.map(p => '• ' + p.name).join('\\n');
+  }
+  alert(msg);
+}
+
+function createGroups() {
+  if (!requireAdmin('създават групи')) return;
+  if (advPlayers.length < 3) {
+    alert('Нужни са поне 3 играчи за групи'); return;
+  }
+  const size = parseInt(document.getElementById('groupSize').value);
+  advanceFromGroup = parseInt(document.getElementById('advanceCount').value);
+
+  // Sort by points (highest first), then seed
+  let playersForGroups = [...advPlayers].sort((a, b) => {
+    if (a.isSeeded && b.isSeeded) return a.seed - b.seed;
+    if (a.isSeeded) return -1;
+    if (b.isSeeded) return 1;
+    return 0;
+  });
+
+  const remainder = playersForGroups.length % size;
+  let directAdvancing = [];
+
+  if (remainder > 0) {
+    // Top ranked get automatic bye to eliminations
+    directAdvancing = playersForGroups.slice(0, remainder).map(p => ({...p, bye: true}));
+    playersForGroups = playersForGroups.slice(remainder);
+  }
+
+  window.directAdvancingPlayers = directAdvancing;
+
+  const numGroups = playersForGroups.length / size;
+  groups = [];
+
+  const seeded = playersForGroups.filter(p => p.isSeeded);
+  let unseeded = playersForGroups.filter(p => !p.isSeeded);
+  for (let i = unseeded.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [unseeded[i], unseeded[j]] = [unseeded[j], unseeded[i]];
+  }
+
+  let sIdx = 0, uIdx = 0;
+  for (let g = 0; g < numGroups; g++) {
+    const groupPlayers = [];
+    if (sIdx < seeded.length) {
+      groupPlayers.push({ ...seeded[sIdx++], isLeader: true });
+    }
+    while (groupPlayers.length < size) {
+      if (uIdx < unseeded.length) {
+        groupPlayers.push({ ...unseeded[uIdx++], isLeader: false });
+      } else if (sIdx < seeded.length) {
+        groupPlayers.push({ ...seeded[sIdx++], isLeader: false });
+      } else break;
+    }
+    if (groupPlayers.length === size) {
+      const leader = groupPlayers.find(p => p.isLeader) || groupPlayers[0];
+      groupPlayers.forEach(p => p.isLeader = (p.id === leader.id));
+      groups.push({ id: g + 1, players: groupPlayers, leader: leader });
+    }
+  }
+
+  closeModal();
+  renderGroups();
+  document.getElementById('groupsSection').style.display = 'block';
+  document.getElementById('advBracketSection').style.display = 'none';
+
+  if (directAdvancing.length > 0) {
+    alert(`Създадени ${groups.length} пълни групи по ${size}.\\n\\n⭐ ${directAdvancing.length} най-високо класирани минават директно в елиминациите:\\n` +
+          directAdvancing.map(p => '• ' + p.name).join('\\n'));
+  }
+}
+
+function renderGroups() {
+  const container = document.getElementById('groupsContainer');
+  const stats = document.getElementById('groupsStats');
+  const byes = window.directAdvancingPlayers || [];
+  const totalAdvance = groups.length * advanceFromGroup + byes.length;
+  stats.innerHTML = `
+    <span class="stat">Групи: ${groups.length}</span>
+    <span class="stat">Продължават от група: ${advanceFromGroup}</span>
+    <span class="stat">Директно (bye): ${byes.length}</span>
+    <span class="stat">Общо в елиминации: ${totalAdvance}</span>`;
+
+  let html = '';
+
+  // Show direct advancing players first
+  if (byes.length > 0) {
+    html += `<div class="group-card" style="border:2px solid var(--gold);grid-column:1/-1">
+      <div class="group-header" style="background:linear-gradient(135deg,#f1c40f,#e67e22)">
+        <span>⭐ Директно в елиминациите (bye)</span>
+        <span style="font-size:0.85rem">${byes.length} играчи</span>
+      </div>
+      <div class="group-body">
+        ${byes.map((p, idx) => `
+          <div class="group-player leader">
+            <span style="width:20px;color:#888">${idx + 1}.</span>
+            ${p.isSeeded ? `<span class="seed-badge" style="background:var(--seed);color:white;font-size:0.7rem;padding:1px 5px;border-radius:8px">${p.seed}</span>` : ''}
+            <span>${escapeHtml(p.name)}</span>${p.points ? ` <small style="color:#888">(${p.points})</small>` : ''}
+            <span class="leader-badge" style="background:#e67e22">BYE</span>
+          </div>`).join('')}
+      </div>
+    </div>`;
+  }
+
+  html += groups.map((g, gIdx) => {
+    // Ensure matches array exists (round-robin pairs)
+    if (!g.matches) {
+      g.matches = [];
+      for (let i = 0; i < g.players.length; i++) {
+        for (let j = i + 1; j < g.players.length; j++) {
+          g.matches.push({
+            p1Id: g.players[i].id,
+            p2Id: g.players[j].id,
+            p1Name: g.players[i].name,
+            p2Name: g.players[j].name,
+            score1: null,
+            score2: null,
+            tb1: null,
+            tb2: null,
+            winnerId: null
+          });
+        }
+      }
+    }
+
+    // Calculate standings
+    const wins = {};
+    g.players.forEach(p => { wins[p.id] = 0; });
+    g.matches.forEach(m => {
+      if (m.winnerId) wins[m.winnerId] = (wins[m.winnerId] || 0) + 1;
+    });
+    const standings = [...g.players].sort((a, b) => {
+      const wDiff = (wins[b.id] || 0) - (wins[a.id] || 0);
+      if (wDiff !== 0) return wDiff;
+      return (b.points || 0) - (a.points || 0);
+    });
+
+    return `
+    <div class="group-card">
+      <div class="group-header">
+        <span>Група ${g.id}</span>
+        <span style="font-size:0.85rem;opacity:0.9">${g.players.length} играчи</span>
+      </div>
+      <div class="group-body">
+        ${g.players.map((p, idx) => `
+          <div class="group-player ${p.isLeader ? 'leader' : ''}">
+            <span style="width:20px;color:#888">${idx + 1}.</span>
+            ${p.isSeeded ? `<span class="seed-badge" style="background:var(--seed);color:white;font-size:0.7rem;padding:1px 5px;border-radius:8px">${p.seed}</span>` : ''}
+            <span>${escapeHtml(p.name)}</span>${p.points ? ` <small style="color:#888">(${p.points})</small>` : ''}
+            ${p.isLeader ? '<span class="leader-badge">ЛИДЕР</span>' : ''}
+          </div>`).join('')}
+
+        <div class="match-results">
+          <h4>🎾 Резултати от двубоите</h4>
+          ${g.matches.map((m, mIdx) => {
+            const played = m.winnerId !== null;
+            const needsTb = (m.score1 === 5 && m.score2 === 5) || (m.score1 === 6 && m.score2 === 6) ||
+                            (m.score1 === 5 && m.score2 === 5) || false;
+            return `
+            <div class="match-row ${played ? 'played' : ''}" id="match-${gIdx}-${mIdx}">
+              <span style="min-width:90px">${escapeHtml(m.p1Name)}</span>
+              <input type="number" min="0" max="7" id="s1-${gIdx}-${mIdx}" value="${m.score1 !== null ? m.score1 : ''}" 
+                     onchange="checkTbVisibility(${gIdx},${mIdx})" placeholder="0" ${played ? 'disabled' : ''}>
+              <span>:</span>
+              <input type="number" min="0" max="7" id="s2-${gIdx}-${mIdx}" value="${m.score2 !== null ? m.score2 : ''}" 
+                     onchange="checkTbVisibility(${gIdx},${mIdx})" placeholder="0" ${played ? 'disabled' : ''}>
+              <span style="min-width:90px">${escapeHtml(m.p2Name)}</span>
+              <span class="tb-fields ${needsTb || (m.tb1 !== null) ? 'visible' : ''}" id="tb-${gIdx}-${mIdx}">
+                TB:
+                <input type="number" min="0" max="20" id="tb1-${gIdx}-${mIdx}" value="${m.tb1 !== null ? m.tb1 : ''}" placeholder="0" ${played ? 'disabled' : ''}>
+                <span>:</span>
+                <input type="number" min="0" max="20" id="tb2-${gIdx}-${mIdx}" value="${m.tb2 !== null ? m.tb2 : ''}" placeholder="0" ${played ? 'disabled' : ''}>
+              </span>
+              ${played 
+                ? `<span class="result-text">${m.score1}:${m.score2}${m.tb1 !== null ? ` (${m.tb1}:${m.tb2})` : ''} → ${escapeHtml(m.winnerId === m.p1Id ? m.p1Name : m.p2Name)}</span>
+                   <button class="save-btn" style="background:#c0392b" onclick="clearMatchResult(${gIdx},${mIdx})">✕</button>`
+                : `<button class="save-btn" onclick="saveMatchResult(${gIdx},${mIdx})">Запази</button>`
+              }
+            </div>`;
+          }).join('')}
+        </div>
+
+        <div class="standings">
+          <strong>Класиране в групата:</strong>
+          <table>
+            <tr><th>#</th><th>Играч</th><th>Победи</th></tr>
+            ${standings.map((p, i) => `
+              <tr class="${i < advanceFromGroup ? 'advancing-row' : ''}">
+                <td>${i + 1}</td>
+                <td>${escapeHtml(p.name)}${i < advanceFromGroup ? ' ✅' : ''}</td>
+                <td>${wins[p.id] || 0}</td>
+              </tr>`).join('')}
+          </table>
+        </div>
+
+        <div class="advance-info">✅ Продължават: ${advanceFromGroup} ${advanceFromGroup === 1 ? 'играч' : 'играчи'}</div>
+      </div>
+    </div>`;
+  }).join('');
+
+  container.innerHTML = html;
+}
+
+function checkTbVisibility(gIdx, mIdx) {
+  const s1 = parseInt(document.getElementById(`s1-${gIdx}-${mIdx}`).value);
+  const s2 = parseInt(document.getElementById(`s2-${gIdx}-${mIdx}`).value);
+  const tbEl = document.getElementById(`tb-${gIdx}-${mIdx}`);
+  if ((s1 === 5 && s2 === 5) || (s1 === 6 && s2 === 6)) {
+    tbEl.classList.add('visible');
+  } else {
+    tbEl.classList.remove('visible');
+    document.getElementById(`tb1-${gIdx}-${mIdx}`).value = '';
+    document.getElementById(`tb2-${gIdx}-${mIdx}`).value = '';
+  }
+}
+
+function saveMatchResult(gIdx, mIdx) {
+  if (!requireAdmin('въвеждат резултати')) return;
+  const g = groups[gIdx];
+  const m = g.matches[mIdx];
+  const s1 = parseInt(document.getElementById(`s1-${gIdx}-${mIdx}`).value);
+  const s2 = parseInt(document.getElementById(`s2-${gIdx}-${mIdx}`).value);
+
+  if (isNaN(s1) || isNaN(s2) || s1 < 0 || s2 < 0) {
+    alert('Въведи валиден резултат (числа).');
+    return;
+  }
+
+  // Basic tennis set validation (simplified: one of them must be >= 6, or 5-5 / 6-6 with TB)
+  const isDeuce = (s1 === 5 && s2 === 5) || (s1 === 6 && s2 === 6);
+  let tb1 = null, tb2 = null;
+
+  if (isDeuce) {
+    tb1 = parseInt(document.getElementById(`tb1-${gIdx}-${mIdx}`).value);
+    tb2 = parseInt(document.getElementById(`tb2-${gIdx}-${mIdx}`).value);
+    if (isNaN(tb1) || isNaN(tb2)) {
+      alert('При резултат 5:5 или 6:6 е задължителен тайбрек!');
+      return;
+    }
+    if (Math.abs(tb1 - tb2) < 2) {
+      alert('Тайбрекът трябва да е с разлика от поне 2 точки (напр. 7:5, 10:8).');
+      return;
+    }
+    if (tb1 === tb2) {
+      alert('Тайбрекът не може да бъде равен.');
+      return;
+    }
+  } else {
+    // Normal set: one must win by 2 if both >= 5, or reach 6 with opponent <= 4
+    if (s1 === s2) {
+      alert('Резултатът не може да бъде равен без тайбрек. При 5:5 или 6:6 въведи тайбрек.');
+      return;
+    }
+    // Soft validation - accept common scores
+  }
+
+  // Determine winner
+  let winnerId;
+  if (isDeuce) {
+    winnerId = tb1 > tb2 ? m.p1Id : m.p2Id;
+  } else {
+    winnerId = s1 > s2 ? m.p1Id : m.p2Id;
+  }
+
+  m.score1 = s1;
+  m.score2 = s2;
+  m.tb1 = isDeuce ? tb1 : null;
+  m.tb2 = isDeuce ? tb2 : null;
+  m.winnerId = winnerId;
+
+  renderGroups();
+}
+
+function clearMatchResult(gIdx, mIdx) {
+  if (!requireAdmin('трият резултати')) return;
+  const m = groups[gIdx].matches[mIdx];
+  m.score1 = null;
+  m.score2 = null;
+  m.tb1 = null;
+  m.tb2 = null;
+  m.winnerId = null;
+  renderGroups();
+}
+
+function generateAdvBracket() {
+  if (!requireAdmin('генерират елиминации')) return;
+  let advancing = [];
+  // Add players who got automatic bye
+  const byes = window.directAdvancingPlayers || [];
+  advancing.push(...byes.map(p => ({...p})));
+
+  if (groups.length > 0) {
+    groups.forEach(g => {
+      // Calculate wins from match results
+      const wins = {};
+      g.players.forEach(p => { wins[p.id] = 0; });
+      if (g.matches) {
+        g.matches.forEach(m => {
+          if (m.winnerId) wins[m.winnerId] = (wins[m.winnerId] || 0) + 1;
+        });
+      }
+      // Sort by wins, then points
+      const sorted = [...g.players].sort((a, b) => {
+        const wDiff = (wins[b.id] || 0) - (wins[a.id] || 0);
+        if (wDiff !== 0) return wDiff;
+        return (b.points || 0) - (a.points || 0);
+      });
+      advancing.push(...sorted.slice(0, advanceFromGroup));
+    });
+  } else if (byes.length === 0) {
+    advancing = [...advPlayers];
+  }
+  if (advancing.length < 2) {
+    alert('Нужни са поне 2 играчи за елиминационна схема'); return;
+  }
+
+  // ========== RANDOM DRAW for main bracket ==========
+  // Shuffle advancing players randomly
+  for (let i = advancing.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [advancing[i], advancing[j]] = [advancing[j], advancing[i]];
+  }
+
+  const n = advancing.length;
+  let bracketSize = 1;
+  while (bracketSize < n) bracketSize *= 2;
+  const positions = new Array(bracketSize).fill(null);
+
+  // Place shuffled players sequentially (random order)
+  advancing.forEach((p, i) => {
+    positions[i] = p;
+  });
+
+  advBracketMatches = [];
+  let currentRound = [];
+  for (let i = 0; i < bracketSize; i += 2) {
+    currentRound.push({ p1: positions[i], p2: positions[i + 1], winner: null });
+  }
+  advBracketMatches.push(currentRound);
+  let matchesInRound = currentRound.length / 2;
+  while (matchesInRound >= 1) {
+    const next = [];
+    for (let i = 0; i < matchesInRound; i++) next.push({ p1: null, p2: null, winner: null });
+    advBracketMatches.push(next);
+    matchesInRound /= 2;
+  }
+
+  // Auto-advance players who have a BYE in the first round
+  currentRound.forEach((m, mIdx) => {
+    if (m.p1 && !m.p2) {
+      m.winner = m.p1;
+      const nextMatch = advBracketMatches[1][Math.floor(mIdx / 2)];
+      if (mIdx % 2 === 0) nextMatch.p1 = m.p1;
+      else nextMatch.p2 = m.p1;
+    } else if (m.p2 && !m.p1) {
+      m.winner = m.p2;
+      const nextMatch = advBracketMatches[1][Math.floor(mIdx / 2)];
+      if (mIdx % 2 === 0) nextMatch.p1 = m.p2;
+      else nextMatch.p2 = m.p2;
+    }
+  });
+
+  renderAdvBracket();
+  document.getElementById('advBracketSection').style.display = 'block';
+  document.getElementById('advBracketSection').scrollIntoView({ behavior: 'smooth' });
+}
+
+function getSeedPositions(size) {
+  if (size === 2) return [0, 1];
+  if (size === 4) return [0, 3, 1, 2];
+  if (size === 8) return [0, 7, 3, 4, 1, 6, 2, 5];
+  if (size === 16) return [0, 15, 7, 8, 3, 12, 4, 11, 1, 14, 6, 9, 2, 13, 5, 10];
+  if (size === 32) return [0,31,15,16,7,24,8,23,3,28,12,19,4,27,11,20,1,30,14,17,6,25,9,22,2,29,13,18,5,26,10,21];
+  const pos = [];
+  for (let i = 0; i < size; i++) pos.push(i);
+  return pos;
+}
+function renderAdvBracket() {
+  const container = document.getElementById('advBracket');
+  const stats = document.getElementById('advBracketStats');
+  stats.innerHTML = `<span class="stat">Рундове: ${advBracketMatches.length}</span>`;
+  const roundNames = getRoundNames(advBracketMatches.length);
+  container.innerHTML = advBracketMatches.map((round, rIdx) => `
+    <div class="adv-round">
+      <div class="adv-round-title">${roundNames[rIdx] || 'Рунд ' + (rIdx + 1)}</div>
+      ${round.map((m, mIdx) => `
+        <div class="adv-match">
+          <div class="adv-match-player ${m.winner && m.p1 && m.winner.id === m.p1.id ? 'winner' : ''}"
+               ${m.p1 ? `onclick="selectAdvWinner(${rIdx}, ${mIdx}, 1)"` : ''}>
+            ${m.p1 ? `${m.p1.isSeeded ? `<span class="seed">${m.p1.seed}</span>` : ''}${escapeHtml(m.p1.name)}` : '<span class="bye">BYE</span>'}
+          </div>
+          <div class="adv-match-player ${m.winner && m.p2 && m.winner.id === m.p2.id ? 'winner' : ''}"
+               ${m.p2 ? `onclick="selectAdvWinner(${rIdx}, ${mIdx}, 2)"` : ''}>
+            ${m.p2 ? `${m.p2.isSeeded ? `<span class="seed">${m.p2.seed}</span>` : ''}${escapeHtml(m.p2.name)}` : '<span class="bye">BYE</span>'}
+          </div>
+        </div>`).join('')}
+    </div>`).join('');
+}
+
+function selectAdvWinner(roundIdx, matchIdx, playerSlot) {
+  if (!requireAdmin('маркират победители')) return;
+  const match = advBracketMatches[roundIdx][matchIdx];
+  const player = playerSlot === 1 ? match.p1 : match.p2;
+  if (!player) return;
+
+  // Set winner
+  match.winner = player;
+
+  // Propagate to next round
+  const nextRoundIdx = roundIdx + 1;
+  if (nextRoundIdx < advBracketMatches.length) {
+    const nextMatchIdx = Math.floor(matchIdx / 2);
+    const nextSlot = matchIdx % 2; // 0 = p1, 1 = p2
+    const nextMatch = advBracketMatches[nextRoundIdx][nextMatchIdx];
+    if (nextSlot === 0) {
+      nextMatch.p1 = player;
+    } else {
+      nextMatch.p2 = player;
+    }
+    // Clear winner of next match if it was already set (because opponent changed)
+    nextMatch.winner = null;
+    // Also clear further rounds that depended on this
+    clearFurtherRounds(nextRoundIdx, nextMatchIdx);
+  }
+
+  renderAdvBracket();
+}
+
+function clearFurtherRounds(fromRound, matchIdx) {
+  for (let r = fromRound + 1; r < advBracketMatches.length; r++) {
+    const mIdx = Math.floor(matchIdx / Math.pow(2, r - fromRound));
+    if (advBracketMatches[r] && advBracketMatches[r][mIdx]) {
+      const m = advBracketMatches[r][mIdx];
+      // Only clear the slot that came from this branch
+      // Simpler: clear both if uncertain, but better to clear winner only
+      m.winner = null;
+      // Clear the player slot that feeds from previous
+      // For simplicity clear winner; players get overwritten when new winner is chosen
+    }
+  }
+}
+
+function getRoundNames(numRounds) {
+  const names = [];
+  if (numRounds >= 1) names.push('Финал');
+  if (numRounds >= 2) names.unshift('1/2 финал');
+  if (numRounds >= 3) names.unshift('1/4 финал');
+  if (numRounds >= 4) names.unshift('1/8 финал');
+  if (numRounds >= 5) names.unshift('1/16 финал');
+  if (numRounds >= 6) names.unshift('1/32 финал');
+  while (names.length < numRounds) names.unshift('Рунд ' + (numRounds - names.length));
+  return names;
+}
+
+function openModal(tab) {
+  document.getElementById('modal').classList.add('active');
+  switchTab(tab || 'url');
+}
+function closeModal() {
+  document.getElementById('modal').classList.remove('active');
+}
+function switchTab(tab) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+  document.querySelector(`.tab[data-tab="${tab}"]`).classList.add('active');
+  document.getElementById('tab-' + tab).classList.add('active');
+}
+function resetAdvanced() {
+  if (!requireAdmin('изчистват данните')) return;
+  if (!confirm('Изчистване на всички данни от разширения режим?')) return;
+  advPlayers = [];
+  groups = [];
+  savedUrls = [];
+  advBracketMatches = [];
+  renderAdvPlayers();
+  document.getElementById('groupsSection').style.display = 'none';
+  document.getElementById('advBracketSection').style.display = 'none';
+  document.getElementById('savedUrls').innerHTML = '';
+}
+function escapeHtml(text) {
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
+document.getElementById('modal').addEventListener('click', function(e) {
+  if (e.target === this) closeModal();
+});
+</script>
+</div><!-- end appContent -->
+</body>
+</html>
